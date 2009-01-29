@@ -18,8 +18,11 @@ require "rexml/document"
 require "open-uri"
 include REXML
 
+# Constants needed, eventually we'll put these in a config
 OpenSimPath = "/opt/opensim/staging/bin"
-Dir.chdir(OpenSimPath)
+OpenSimUser = "root"
+
+Process.uid = Etc.getpwnam(OpenSimUser).uid
 
 @host = "localhost"
 @port = 9000
