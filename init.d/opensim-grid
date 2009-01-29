@@ -21,6 +21,7 @@ include REXML
 # Set some constants here
 OpenSimPath = "/opt/opensim/staging/bin"
 OpenSimUser = "root"
+MonoPath = "/usr/local/bin/mono"
 
 # Set up our initial environment
 Process.uid = Etc.getpwnam(OpenSimUser).uid
@@ -200,7 +201,7 @@ def start_service(name, exe)
         puts("#{exe} already running")
         return
     end
-    system("screen -d -S #{name} -m /usr/local/bin/mono --debug #{exe}")
+    system("screen -d -S #{name} -m #{MonoPath} --debug #{exe}")
 end
 
 def start

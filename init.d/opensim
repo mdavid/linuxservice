@@ -21,6 +21,7 @@ include REXML
 # Constants needed, eventually we'll put these in a config
 OpenSimPath = "/opt/opensim/staging/bin"
 OpenSimUser = "root"
+MonoPath = "/usr/local/bin/mono"
 
 # Set up our initial environment
 Process.uid = Etc.getpwnam(OpenSimUser).uid
@@ -114,7 +115,7 @@ def start
         system("rm -rf addin-db-*")
     end
     system("screen -wipe")
-    system("screen -d -S opensim -m /usr/local/bin/mono --debug OpenSim.exe")
+    system("screen -d -S opensim -m #{MonoPath} --debug OpenSim.exe")
     
     20.times do |t|
         if alive?
