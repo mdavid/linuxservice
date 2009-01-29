@@ -272,7 +272,7 @@ def stop_service(name, exe)
     if pidof(exe) == nil
         puts "WARNING - #{exe} not running"
     end
-    system("screen -S #{name} -X eval 'stuff \"shutdown\015\"'")
+    system("screen -S #{name} -p 0 -X eval 'stuff \"shutdown\015\"'")
     puts "Shutting down... waiting 30 seconds"
     30.times do |i|
         if pidof(exe) == nil

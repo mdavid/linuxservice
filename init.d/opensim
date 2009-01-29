@@ -134,7 +134,7 @@ def stop
         exit 0
     end
     system("screen -wipe")
-    system("screen -S opensim -X eval 'stuff \"shutdown\015\"'")
+    system("screen -S opensim -p 0 -X eval 'stuff \"shutdown\015\"'")
     puts "Shutting down... waiting 30 seconds"
     30.times do |i|
         if opensim_pid == nil
