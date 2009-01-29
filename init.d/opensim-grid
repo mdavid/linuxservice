@@ -1,0 +1,322 @@
+#!/usr/bin/ruby
+
+# Start or stop OpenSim
+#
+# Sean Dague <japh@us.ibm.com>
+
+### BEGIN INIT INFO
+# Provides:          opensim-grid
+# Required-Start:    $local_fs $remote_fs $syslog $named $network $time $mysql
+# Required-Stop:     $local_fs $remote_fs $syslog $named $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: start and stop opensim-grid
+# Description:       opensim-grid init script
+### END INIT INFO
+
+require "rexml/document"
+require "open-uri"
+include REXML
+
+OpenSimPath = "/opt/opensim/staging/bin"
+Dir.chdir(OpenSimPath)
+
+@host = "localhost"
+@gridport = nil
+@userport = nil
+@invport = nil
+@assetport = nil
+@messageport = nil
+
+GridExe = "OpenSim.Grid.GridServer.exe"
+UserExe = "OpenSim.Grid.UserServer.exe"
+AssetExe = "OpenSim.Grid.AssetServer.exe"
+InventoryExe = "OpenSim.Grid.InventoryServer.exe"
+MessagingExe = "OpenSim.Grid.MessagingServer.exe"
+
+def parse_config
+    # Grid 
+    begin 
+        doc = Document.new(File.new("#{OpenSimPath}/GridServer_Config.xml"))
+        @gridport = doc.root.elements['Config'].attributes['http_port']
+    rescue => e
+    end
+
+    # User 
+    begin
+        doc = Document.new(File.new("#{OpenSimPath}/UserServer_Config.xml"))
+        @userport = doc.root.elements['Config'].attributes['http_port']
+    rescue => e
+    end
+    
+    # Inventory 
+    begin
+        doc = Document.new(File.new("#{OpenSimPath}/InventoryServer_Config.xml"))
+        @invport = doc.root.elements['Config'].attributes['http_port']
+    rescue => e
+    end
+    
+    # Asset 
+    begin
+        doc = Document.new(File.new("#{OpenSimPath}/AssetServer_Config.xml"))
+        @assetport = doc.root.elements['Config'].attributes['http_port']
+    rescue => e
+    end
+    
+    # Messaging 
+    begin
+        doc = Document.new(File.new("#{OpenSimPath}/MessagingServer_Config.xml"))
+        @messageport = doc.root.elements['Config'].attributes['http_port']
+    rescue => e
+    end
+end
+
+def grid_alive?
+    if not @gridport
+        return false
+    end
+    # we actually only care if we cause an exception, which means the grid server is bust
+    begin
+        xml = open("http://#{@host}:#{@gridport}/sims/fc036b80fed84b3096a50569b60da265").read
+        return true
+    rescue => e
+        return false
+    end
+end
+
+def user_alive?
+    if not @userport
+       return false 
+    end
+    # we actually only care if we cause an exception, which means the grid server is bust
+    begin
+        xml = open("http://#{@host}:#{@userport}/get_grid_info").read
+        return true
+    rescue => e
+        return false
+    end
+end
+
+def asset_alive?
+    if not @assetport
+        return false
+    end
+    begin
+        # fetch the moon
+        xml = open("http://#{@host}:#{@assetport}/assets/ec4b9f0b-d008-45c6-96a4-01dd947ac621").read
+        # we need to check that we got something, because everything returns success, even if it didn't work
+        if xml.size > 0
+            return true
+        else
+            return false
+        end
+    rescue => e
+        return false
+    end
+end
+
+def inv_alive?
+    if not @userport
+       return false 
+    end
+    return true
+    # THERE IS CURRENTLY NO EASY CALL FOR INV SERVER
+    # we actually only care if we cause an exception, which means the grid server is bust
+    begin
+        xml = open("http://#{@host}:#{@port}/get_grid_info").read
+        return true
+    rescue => e
+        return false
+    end
+end
+
+def message_alive?
+    if not @messageport
+        return false
+    end
+    return true
+end
+
+
+def pidof(item)
+    IO.popen("ps auxw | grep #{item} | grep -v grep") do |line|
+        line.each do |l|
+            return l.split[1].to_i
+        end
+    end
+    return nil
+end
+
+def grid_pid
+    return pidof(GridExe)
+end
+def user_pid
+    return pidof(UserExe)
+end
+def asset_pid
+    return pidof(AssetExe)
+end
+def inv_pid
+    return pidof(InventoryExe)
+end
+def message_pid
+    return pidof(MessagingExe)
+end
+
+def failme(msg="")
+    puts "FAIL - #{msg}"
+    exit 1
+end
+
+def status
+    if @gridport and (not grid_alive?)
+        failme("Grid server not responding")
+    end
+    if @userport and (not user_alive?)
+        failme("User server not responding")
+    end
+    if @assetport and (not asset_alive?)
+        failme("Asset server not responding")
+    end
+    if @invport and (not inv_alive?)
+        failme("Inventory server not responding")
+    end
+    if @messageport and (not message_alive?)
+        failme("Grid server not responding")
+    end
+    puts "OK"
+    exit 0
+end
+
+def start_service(name, exe)
+    if pidof(exe) != nil
+        puts("#{exe} already running")
+        return
+    end
+    system("screen -d -S #{name} -m /usr/local/bin/mono --debug #{exe}")
+end
+
+def start
+    # Grid
+    start_service("grid", GridExe)
+    10.times do |d|
+        if grid_alive?
+            break
+        end
+        sleep 2
+    end
+    if not grid_alive?
+        failme("Grid server did not start")
+    end
+
+    # User
+    start_service("user", UserExe)
+    10.times do |d|
+        if user_alive?
+            break
+        end
+        sleep 2
+    end
+    if not user_alive?
+        failme("User server did not start")
+    end
+
+    # Asset
+    start_service("asset", AssetExe)
+    10.times do |d|
+        if asset_alive?
+            break
+        end
+        sleep 2
+    end
+    if not asset_alive?
+        failme("Asset server did not start")
+    end
+
+    # Inventory
+    start_service("inventory", InventoryExe)
+    10.times do |d|
+        if inv_alive?
+            break
+        end
+        sleep 2
+    end
+    if not inv_alive?
+        failme("Inventory server did not start")
+    end
+    
+    # sleep an extra 2 because we didn't sleep at all here
+    sleep 2
+    # Messaging
+    start_service("messaging", MessagingExe)
+    10.times do |d|
+        if message_alive?
+            break
+        end
+        sleep 2
+    end
+    if not message_alive?
+        failme("Messaging server did not start")
+    end
+end
+
+def stop_service(name, exe)
+    if pidof(exe) == nil
+        puts "WARNING - #{exe} not running"
+    end
+    system("screen -S #{name} -X eval 'stuff \"shutdown\015\"'")
+    puts "Shutting down... waiting 30 seconds"
+    30.times do |i|
+        if pidof(exe) == nil
+            # just puts out a newline
+            puts ""
+            return 
+        end
+        $stderr.write "."
+        sleep 1
+    end
+    
+    pid = pidof(exe)
+    if pid
+        puts "Process not responding, forcing shutdown"
+        Process.kill(9, pid)
+    end
+end
+
+def stop
+    stop_service("messaging",MessagingExe)
+    stop_service("inventory",InventoryExe)
+    stop_service("asset",AssetExe)
+    stop_service("user",UserExe)
+    stop_service("grid",GridExe)
+end
+
+def process
+    puts "Grid #{grid_pid}"
+    puts "User #{user_pid}"
+    puts "Asset #{asset_pid}"
+    puts "Inventory #{inv_pid}"
+    puts "Messaging #{message_pid}"
+end
+
+def main
+    parse_config
+    
+    mode = ARGV[0]
+    
+    if mode == "start"
+        start
+    elsif mode == "stop"
+        stop
+    elsif mode == "status"
+        status
+    elsif mode == "process"
+        process
+    elsif mode == "restart"
+        puts "called restart"
+    else
+        puts "unknown"
+    end
+end
+
+main

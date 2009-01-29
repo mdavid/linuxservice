@@ -1,0 +1,168 @@
+#!/usr/bin/ruby
+
+# Start or stop OpenSim
+#
+# Sean Dague <japh@us.ibm.com>
+
+### BEGIN INIT INFO
+# Provides:          opensim
+# Required-Start:    $local_fs $remote_fs $syslog $named $network $time $mysql
+# Required-Stop:     $local_fs $remote_fs $syslog $named $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: start and stop opensim
+# Description:       opensim init script
+### END INIT INFO
+
+require "rexml/document"
+require "open-uri"
+include REXML
+
+OpenSimPath = "/opt/opensim/staging/bin"
+Dir.chdir(OpenSimPath)
+
+@host = "localhost"
+@port = 9000
+@uuid = "0"
+
+def parse_config
+    # first we figure out the external hostname of a region on the box
+    Dir.new("#{OpenSimPath}/Regions").find do |f|
+        if f =~ /\.xml$/
+            doc = Document.new(File.new("#{OpenSimPath}/Regions/#{f}"))
+            
+            if doc.root.elements['Config'].attributes['external_host_name']
+                @host = doc.root.elements['Config'].attributes['external_host_name']
+            else
+                @host = doc.root.elements['Config'].elements['external_host_name'].text
+            end
+       
+            if doc.root.elements['Config'].attributes['sim_UUID']
+                @uuid = doc.root.elements['Config'].attributes['sim_UUID'].gsub(/-/,'')
+            else
+                @uuid = doc.root.elements['Config'].elements['sim_UUID'].text.gsub(/-/,'')
+            end
+            
+            break
+        end
+    end
+    # then we figure out the external port from opensim.ini
+    open("#{OpenSimPath}/OpenSim.ini") do |f|
+        f.each do |line|
+            if line =~ /^\s*http_listener_port/
+                (key, equal, port) = line.split
+                if port
+                    @port = port
+                end
+            end
+        end
+    end
+end
+
+def alive?
+    begin
+        open("http://#{@host}:#{@port}/index.php?method=regionImage#{@uuid}") do |f|
+            resp = f.read
+            return true
+        end
+    rescue => e
+    end
+    return false
+end
+
+def pidof(item)
+    IO.popen("ps auxw | grep #{item} | grep -v grep") do |line|
+        line.each do |l|
+            return l.split[1].to_i
+        end
+    end
+    return nil
+end
+
+def opensim_pid
+    return pidof("OpenSim.exe")
+end
+
+def status
+    if alive?
+        puts "OK"
+        exit 0
+    else
+        puts "FAILED"
+        exit 1
+    end
+end
+
+def start
+    if alive?
+        puts "OpenSim already running"
+        exit 0
+    end
+    if opensim_pid != nil
+        # opensim process is running, but not responding, we're hung
+        stop
+        # this really is needed otherwise you get a wedge
+        system("/etc/init.d/mysql restart")
+        sleep 10
+        # purge the addin cache, this may have been the reason for the hang
+        system("rm -rf addin-db-*")
+    end
+    system("screen -wipe")
+    system("screen -d -S opensim -m /usr/local/bin/mono --debug OpenSim.exe")
+    
+    20.times do |t|
+        if alive?
+            return
+        end
+        sleep 5
+    end
+    
+    puts "FAILED to start region"
+    exit 1
+end
+
+def stop
+    if opensim_pid == nil
+        puts "OpenSim not running"
+        exit 0
+    end
+    system("screen -wipe")
+    system("screen -S opensim -X eval 'stuff \"shutdown\015\"'")
+    puts "Shutting down... waiting 30 seconds"
+    30.times do |i|
+        if opensim_pid == nil
+            return 
+        end
+        $stderr.write "."
+        sleep 1
+    end
+    
+    pid = opensim_pid
+    if pid
+        puts "Process not responding, forcing shutdown"
+        Process.kill(9, pid)
+    end
+    
+end
+
+def main
+    parse_config
+    
+    mode = ARGV[0]
+    
+    if mode == "start"
+        start
+    elsif mode == "stop"
+        stop
+    elsif mode == "status"
+        status
+    elsif mode == "process"
+        puts opensim_pid
+    elsif mode == "restart"
+        puts "called restart"
+    else
+        puts "unknown"
+    end
+end
+
+main
