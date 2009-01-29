@@ -22,8 +22,11 @@ include REXML
 OpenSimPath = "/opt/opensim/staging/bin"
 OpenSimUser = "root"
 
+# Set up our initial environment
 Process.uid = Etc.getpwnam(OpenSimUser).uid
+Dir.chdir(OpenSimPath)
 
+# This variables we'll parse 
 @host = "localhost"
 @port = 9000
 @uuid = "0"
