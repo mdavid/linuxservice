@@ -1,0 +1,7 @@
+Installation is simple
+
+   sudo rake install
+
+Then edit /etc/default/opensim and change the constants there to your
+hearts desire.  You'll probably want to turn one of the Enable
+parameters to true, otherwise the init scripts won't do anything.

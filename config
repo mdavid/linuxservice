@@ -1,0 +1,16 @@
+# The OpenSim init config files
+
+# Directory where your opensim build is
+OpenSimPath = "/opt/opensim/staging/bin"
+
+# The user to run opensim as
+OpenSimUser = "root"
+
+# Your mono instances
+MonoPath = "/usr/local/bin/mono"
+
+# Should region be started via init script (change to true to enable)
+EnableRegion = false
+
+# Should grid be started via init script
+EnableGrid = false

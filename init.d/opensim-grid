@@ -16,12 +16,10 @@
 
 require "rexml/document"
 require "open-uri"
+require "etc"
 include REXML
 
-# Set some constants here
-OpenSimPath = "/opt/opensim/staging/bin"
-OpenSimUser = "root"
-MonoPath = "/usr/local/bin/mono"
+require "/etc/default/opensim"
 
 # Set up our initial environment
 Process.uid = Etc.getpwnam(OpenSimUser).uid
@@ -311,6 +309,10 @@ def main
     parse_config
     
     mode = ARGV[0]
+
+    if not EnableGrid
+        exit 0
+    end
     
     if mode == "start"
         start
