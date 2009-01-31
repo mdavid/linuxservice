@@ -199,7 +199,7 @@ def start_service(name, exe)
         puts("#{exe} already running")
         return
     end
-    system("screen -d -S #{name} -m #{MonoPath} --debug #{exe}")
+    system("screen -d -S #{name} -m #{ExtraEnv} #{MonoPath} --debug #{exe}")
 end
 
 def start
