@@ -35,7 +35,6 @@ Rake::GemPackageTask.new(spec) do |pkg|
     #pkg.gem_spec = spec
     #pkg.need_gem = false
     pkg.need_tar = true
-    pkg.need_zip = true
 end
 
 desc "Install init scripts"
