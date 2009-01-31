@@ -16,6 +16,7 @@
 
 require "rexml/document"
 require "open-uri"
+require "etc"
 include REXML
 
 # Constants needed, eventually we'll put these in a config
