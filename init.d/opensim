@@ -113,7 +113,7 @@ def start
         system("rm -rf addin-db-*")
     end
     system("screen -wipe")
-    system("screen -d -S opensim -m #{MonoPath} --debug OpenSim.exe")
+    system("screen -d -S opensim -m #{ExtraEnv} #{MonoPath} --debug OpenSim.exe")
     
     20.times do |t|
         if alive?
