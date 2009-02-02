@@ -21,8 +21,17 @@ include REXML
 
 require "/etc/default/opensim"
 
+# This sets up the environment
+if ExtraEnv 
+    items = ExtraEnv.split
+    items.each do item
+        k, v = item.split(/\=/)
+        ENV[k] = v
+    end
+end
+
 # Set up our initial environment
-Process.uid = Etc.getpwnam(OpenSimUser).uid
+Process.euid = Etc.getpwnam(OpenSimUser).uid
 Dir.chdir(OpenSimPath)
 
 # This variables we'll parse 
@@ -199,7 +208,7 @@ def start_service(name, exe)
         puts("#{exe} already running")
         return
     end
-    system("screen -d -S #{name} -m #{ExtraEnv} #{MonoPath} --debug #{exe}")
+    system("screen -d -S #{name} -m #{MonoPath} --debug #{exe}")
 end
 
 def start

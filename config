@@ -4,7 +4,7 @@
 OpenSimPath = "/opt/opensim/staging/bin"
 
 # The user to run opensim as
-OpenSimUser = "root"
+OpenSimUser = "opensim"
 
 # Your mono instances
 MonoPath = "/usr/local/bin/mono"
@@ -13,7 +13,7 @@ MonoPath = "/usr/local/bin/mono"
 ExtraEnv = "MONO_THREADS_PER_CPU=75"
 
 # Should region be started via init script (change to true to enable)
-EnableRegion = false
+EnableRegion = true
 
 # Should grid be started via init script
 EnableGrid = false

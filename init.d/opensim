@@ -21,8 +21,17 @@ include REXML
 
 load "/etc/default/opensim"
 
+# This sets up the environment
+if ExtraEnv 
+    items = ExtraEnv.split
+    items.each do item
+        k, v = item.split(/\=/)
+        ENV[k] = v
+    end
+end
+
 # Set up our initial environment
-Process.uid = Etc.getpwnam(OpenSimUser).uid
+Process.euid = Etc.getpwnam(OpenSimUser).uid
 Dir.chdir(OpenSimPath)
 
 # This variables we'll parse 
@@ -113,7 +122,7 @@ def start
         system("rm -rf addin-db-*")
     end
     system("screen -wipe")
-    system("screen -d -S opensim -m #{ExtraEnv} #{MonoPath} --debug OpenSim.exe")
+    system("screen -d -S opensim -m #{MonoPath} --debug OpenSim.exe")
     
     20.times do |t|
         if alive?
