@@ -24,7 +24,7 @@ require "/etc/default/opensim"
 # This sets up the environment
 if ExtraEnv 
     items = ExtraEnv.split
-    items.each do item
+    items.each do |item|
         k, v = item.split(/\=/)
         ENV[k] = v
     end
