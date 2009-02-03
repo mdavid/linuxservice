@@ -113,22 +113,32 @@ def start
         exit 0
     end
     if opensim_pid != nil
+        puts "OpenSim still running... stopping now"
         # opensim process is running, but not responding, we're hung
         stop
+        puts "Restarting mysql"
         # this really is needed otherwise you get a wedge
+        Process.euid = 0
         system("/etc/init.d/mysql restart")
+        Process.euid = Etc.getpwnam(OpenSimUser).uid
         sleep 10
+        puts "Removing addins cache"
         # purge the addin cache, this may have been the reason for the hang
         system("rm -rf addin-db-*")
     end
+    puts "Wiping all old screen sessions"
     system("screen -wipe")
-    system("screen -d -S opensim -m #{MonoPath} --debug OpenSim.exe")
-    
-    20.times do |t|
-        if alive?
-            return
+
+    puts "Starting opensim"
+    if system("screen -d -S opensim -m #{MonoPath} --debug OpenSim.exe")
+        puts "Starting opensim... waiting 100 seconds"
+        20.times do |t|
+            if alive?
+                return
+            end
+            $stderr.write "."
+            sleep 5
         end
-        sleep 5
     end
     
     puts "FAILED to start region"
@@ -140,21 +150,26 @@ def stop
         puts "OpenSim not running"
         exit 0
     end
+    puts "Wiping all old screen sessions"
     system("screen -wipe")
-    system("screen -S opensim -p 0 -X eval 'stuff \"shutdown\015\"'")
-    puts "Shutting down... waiting 30 seconds"
-    30.times do |i|
-        if opensim_pid == nil
-            return 
+    
+    if system("screen -S opensim -p 0 -X eval 'stuff \"shutdown\015\"'")
+        puts "Shutting down... waiting 30 seconds"
+        30.times do |i|
+            if opensim_pid == nil
+                return 
+            end
+            $stderr.write "."
+            sleep 1
         end
-        $stderr.write "."
-        sleep 1
     end
     
     pid = opensim_pid
     if pid
         puts "Process not responding, forcing shutdown"
+        Process.euid = 0
         Process.kill(9, pid)
+        Process.euid = Etc.getpwnam(OpenSimUser).uid
     end
     
 end
