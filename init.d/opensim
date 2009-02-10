@@ -30,6 +30,8 @@ if ExtraEnv
     end
 end
 
+ENV["DISPLAY"] = nil
+
 # Set up our initial environment
 Process.euid = Etc.getpwnam(OpenSimUser).uid
 Dir.chdir(OpenSimPath)
@@ -175,13 +177,13 @@ def stop
 end
 
 def main
-    parse_config
-    
-    mode = ARGV[0]
-
     if not EnableRegion
         exit 0
     end
+
+    parse_config
+    
+    mode = ARGV[0]
     
     if mode == "start"
         start

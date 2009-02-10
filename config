@@ -4,7 +4,7 @@
 OpenSimPath = "/opt/opensim/staging/bin"
 
 # The user to run opensim as
-OpenSimUser = "opensim"
+OpenSimUser = "root"
 
 # Your mono instances
 MonoPath = "/usr/local/bin/mono"

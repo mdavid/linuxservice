@@ -19,7 +19,7 @@ require "open-uri"
 require "etc"
 include REXML
 
-require "/etc/default/opensim"
+load "/etc/default/opensim"
 
 # This sets up the environment
 if ExtraEnv 
@@ -88,9 +88,11 @@ end
 
 def grid_alive?
     if not @gridport
+        puts "No grid port, bailing"
         return false
     end
     # we actually only care if we cause an exception, which means the grid server is bust
+    puts "Checking if grid alive via: http://#{@host}:#{@gridport}/sims/fc036b80fed84b3096a50569b60da265"
     begin
         xml = open("http://#{@host}:#{@gridport}/sims/fc036b80fed84b3096a50569b60da265").read
         return true
@@ -101,23 +103,28 @@ end
 
 def user_alive?
     if not @userport
-       return false 
+        puts "No user port, bailing"
+        return false 
     end
     # we actually only care if we cause an exception, which means the grid server is bust
     begin
+        puts "Checking if user server alive via: http://#{@host}:#{@userport}/get_grid_info"
         xml = open("http://#{@host}:#{@userport}/get_grid_info").read
         return true
     rescue => e
+        puts e.to_s
         return false
     end
 end
 
 def asset_alive?
     if not @assetport
+        puts "No asset port, bailing"
         return false
     end
     begin
         # fetch the moon
+        puts "Checking if asset server alive via: http://#{@host}:#{@assetport}/assets/ec4b9f0b-d008-45c6-96a4-01dd947ac62"
         xml = open("http://#{@host}:#{@assetport}/assets/ec4b9f0b-d008-45c6-96a4-01dd947ac621").read
         # we need to check that we got something, because everything returns success, even if it didn't work
         if xml.size > 0
@@ -212,18 +219,6 @@ def start_service(name, exe)
 end
 
 def start
-    # Grid
-    start_service("grid", GridExe)
-    10.times do |d|
-        if grid_alive?
-            break
-        end
-        sleep 2
-    end
-    if not grid_alive?
-        failme("Grid server did not start")
-    end
-
     # User
     start_service("user", UserExe)
     10.times do |d|
@@ -234,6 +229,18 @@ def start
     end
     if not user_alive?
         failme("User server did not start")
+    end
+
+    # Grid
+    start_service("grid", GridExe)
+    10.times do |d|
+        if grid_alive?
+            break
+        end
+        sleep 2
+    end
+    if not grid_alive?
+        failme("Grid server did not start")
     end
 
     # Asset
@@ -302,8 +309,8 @@ def stop
     stop_service("messaging",MessagingExe)
     stop_service("inventory",InventoryExe)
     stop_service("asset",AssetExe)
-    stop_service("user",UserExe)
     stop_service("grid",GridExe)
+    stop_service("user",UserExe)
 end
 
 def process
@@ -315,13 +322,13 @@ def process
 end
 
 def main
-    parse_config
-    
-    mode = ARGV[0]
-
     if not EnableGrid
         exit 0
     end
+
+    parse_config
+    
+    mode = ARGV[0]
     
     if mode == "start"
         start
