@@ -16,6 +16,24 @@
 
 require "rexml/document"
 require "open-uri"
+require 'timeout'
+
+require 'pp'
+require 'stringio'
+
+module Kernel
+  private
+  def pp_s(*objs)
+      s = StringIO.new
+      objs.each {|obj|
+        PP.pp(obj, s)
+      }
+      s.rewind
+      s.read
+  end
+  module_function :pp_s
+end
+
 require "etc"
 include REXML
 
@@ -76,12 +94,19 @@ def parse_config
 end
 
 def alive?
-    begin
-        open("http://#{@host}:#{@port}/index.php?method=regionImage#{@uuid}") do |f|
-            resp = f.read
-            return true
-        end
-    rescue => e
+    begin 
+        Timeout::timeout(5) {
+            begin
+                open("http://#{@host}:#{@port}/index.php?method=regionImage#{@uuid}") do |f|
+                    resp = f.read
+                    return true
+                end
+            rescue => e
+                puts e
+            end
+        }
+    rescue Timeout::Error => e
+        puts e
     end
     return false
 end
@@ -132,7 +157,7 @@ def start
     system("screen -wipe")
 
     puts "Starting opensim"
-    if system("screen -d -S opensim -m #{MonoPath} --debug OpenSim.exe")
+    if system("screen -d -S opensim -m #{MonoPath} #{MonoFlags} #{OpenSimPath}/OpenSim.exe")
         puts "Starting opensim... waiting 100 seconds"
         20.times do |t|
             if alive?
@@ -181,6 +206,10 @@ def main
         exit 0
     end
 
+    # open("/tmp/opensim-evn-#{Time.now.to_i}", "w") do |f|
+    #    f.write(pp_s(ENV))
+    # end
+    
     parse_config
     
     mode = ARGV[0]

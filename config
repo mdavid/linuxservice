@@ -9,8 +9,13 @@ OpenSimUser = "root"
 # Your mono instances
 MonoPath = "/usr/local/bin/mono"
 
+# Mono flags
+# set the following to run in debug 
+# MonFlags = "--debug"
+MonoFlags = ""
+
 # Extra Environment Variables
-ExtraEnv = "MONO_THREADS_PER_CPU=75"
+ExtraEnv = "MONO_THREADS_PER_CPU=500"
 
 # Should region be started via init script (change to true to enable)
 EnableRegion = true
